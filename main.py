@@ -1,54 +1,53 @@
 import math
 from collections import Counter
 
-def tokenize(document):
-    """Tokenizuje dokument na pojedyncze słowa."""
-    return document.lower().split()
+def tokenize(text):
+    """Konwertuje tekst na małe litery i dzieli na słowa, usuwając znaki interpunkcyjne."""
+    return text.lower().replace('.', '').split()
 
-def compute_term_frequencies(documents):
-    """Oblicza częstotliwości terminów w dokumentach."""
+def compute_document_frequencies(documents):
+    """Oblicza częstotliwości terminów dla każdego dokumentu."""
     return [Counter(tokenize(doc)) for doc in documents]
 
-def compute_collection_frequencies(documents):
-    """Oblicza częstotliwość każdego terminu w całej kolekcji dokumentów."""
-    collection_counter = Counter()
+def compute_corpus_frequencies(documents):
+    """Oblicza częstotliwości terminów w całym korpusie."""
+    corpus_counter = Counter()
     for doc in documents:
-        collection_counter.update(tokenize(doc))
-    return collection_counter
+        corpus_counter.update(tokenize(doc))
+    return corpus_counter
 
-def query_likelihood(doc_freqs, coll_freqs, query, total_terms, lam=0.5):
-    """Oblicza prawdopodobieństwo generowania zapytania przez dokument."""
-    query_tokens = tokenize(query)
-    score = 0
+def calculate_query_probability(doc_freqs, corpus_freqs, query_tokens, doc_size, corpus_size, smoothing=0.5):
+    """Oblicza logarytmiczne prawdopodobieństwo zapytania dla danego dokumentu."""
+    log_prob = 0
     for token in query_tokens:
-        doc_prob = doc_freqs.get(token, 0) / total_terms
-        coll_prob = coll_freqs.get(token, 0) / sum(coll_freqs.values())
-        smoothed_prob = lam * doc_prob + (1 - lam) * coll_prob
+        prob_in_doc = doc_freqs[token] / doc_size if doc_size > 0 else 0
+        prob_in_corpus = corpus_freqs[token] / corpus_size if corpus_size > 0 else 0
+        smoothed_prob = smoothing * prob_in_doc + (1 - smoothing) * prob_in_corpus
         if smoothed_prob > 0:
-            score += math.log(smoothed_prob)
-    return score
+            log_prob += math.log(smoothed_prob)
+    return log_prob
 
-def rank_documents(documents, query, lam=0.5):
-    """Sortuje dokumenty według prawdopodobieństwa generowania zapytania."""
-    doc_freqs_list = compute_term_frequencies(documents)
-    coll_freqs = compute_collection_frequencies(documents)
-    total_terms_list = [sum(freq.values()) for freq in doc_freqs_list]
+def rank_documents(documents, query, smoothing=0.5):
+    """Sortuje dokumenty według prawdopodobieństwa zapytania."""
+    query_tokens = tokenize(query)
+    doc_freqs_list = compute_document_frequencies(documents)
+    corpus_freqs = compute_corpus_frequencies(documents)
+    corpus_size = sum(corpus_freqs.values())
 
     scores = []
-    for i, doc_freqs in enumerate(doc_freqs_list):
-        score = query_likelihood(doc_freqs, coll_freqs, query, total_terms_list[i], lam)
-        scores.append((score, i))
+    for idx, doc_freqs in enumerate(doc_freqs_list):
+        doc_size = sum(doc_freqs.values())
+        score = calculate_query_probability(doc_freqs, corpus_freqs, query_tokens, doc_size, corpus_size, smoothing)
+        scores.append((idx, score))
 
-    # Sortowanie malejąco według wyniku, zachowując kolejność przy równych wynikach
-    scores.sort(key=lambda x: (-x[0], x[1]))
-    return [index for _, index in scores]
+    # Sortowanie malejąco po wyniku, a następnie rosnąco po indeksie
+    scores.sort(key=lambda x: (-x[1], x[0]))
+    return [index for index, _ in scores]
 
 if __name__ == "__main__":
-    # Dane wejściowe
-    n = int(input().strip())
-    documents = [input().strip() for _ in range(n)]
-    query = input().strip()
+    num_docs = int(input("Podaj liczbę dokumentów: "))
+    documents = [input(f"Dokument {i + 1}: ").strip() for i in range(num_docs)]
+    query = input("Podaj zapytanie: ").strip()
 
-    # Ranking dokumentów
     ranked_indices = rank_documents(documents, query)
-    print(ranked_indices)
+    print("Posortowane indeksy dokumentów:", ranked_indices)
