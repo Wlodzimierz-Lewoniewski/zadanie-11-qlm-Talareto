@@ -2,14 +2,12 @@ import math
 from collections import Counter
 
 def tokenize(text):
-    """Converts text to lowercase and splits into words without punctuation."""
     return text.lower().replace('.', '').split()
 
 def compute_document_scores(documents, query, smoothing=0.5):
     query_tokens = tokenize(query)
     tokenized_docs = [tokenize(doc) for doc in documents]
 
-    # Flatten the corpus and calculate word frequencies
     corpus_tokens = [word for doc in tokenized_docs for word in doc]
     corpus_freq = Counter(corpus_tokens)
     corpus_size = len(corpus_tokens)
@@ -32,7 +30,6 @@ def compute_document_scores(documents, query, smoothing=0.5):
 
         scores.append((log_probability, doc_index))
 
-    # Sort by log probability descending, then by index ascending
     scores.sort(key=lambda item: (-item[0], item[1]))
 
     return [index for _, index in scores]
@@ -40,7 +37,7 @@ def compute_document_scores(documents, query, smoothing=0.5):
 if __name__ == "__main__":
     num_docs = int(input())
     docs = [input().strip() for _ in range(num_docs)]
-    search_query = input().strip()
+    query = input().strip()
 
-    ranked_indices = compute_document_scores(docs, search_query)
+    ranked_indices = compute_document_scores(docs, query)
     print(ranked_indices)
