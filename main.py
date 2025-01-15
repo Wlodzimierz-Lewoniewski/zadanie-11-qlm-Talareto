@@ -42,11 +42,21 @@ def knn_classifier(train_set, train_labels, target_doc, k):
     return 1 if top_k_labels.count(1) >= top_k_labels.count(0) else 0
 
 if __name__ == "__main__":
-    n_docs = int(input())
-    train_data = [input().strip() for _ in range(n_docs)]
-    doc_labels = list(map(int, input().strip().split()))
-    test_data = input().strip()
-    k_value = int(input())
+    try:
+        num_training_docs = int(input("Enter number of training documents: "))
+        training_documents = [input(f"Document {i + 1}: ").strip() for i in range(num_training_docs)]
+        
+        training_labels = input("Enter space-separated binary labels (e.g., '1 0 1'): ").strip().split()
+        if not all(label in {"0", "1"} for label in training_labels):
+            raise ValueError("Labels must be binary (0 or 1).")
+        training_labels = list(map(int, training_labels))
+        
+        test_document = input("Enter test document: ").strip()
+        k_neighbors = int(input("Enter number of neighbors (k): "))
 
-    output = knn_classifier(train_data, doc_labels, test_data, k_value)
-    print(output)
+        result = classify_knn(training_documents, training_labels, test_document, k_neighbors)
+        print(result)
+
+    except ValueError as e:
+        print(f"Input error: {e}")
+
