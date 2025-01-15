@@ -51,4 +51,4 @@ if __name__ == "__main__":
 
     # Ranking dokumentów
     ranked_indices = rank_documents(documents, query)
-    print(" ".join(map(str, ranked_indices)))
+    print(ranked_indices)  # Wyświetl wynik jako tablicę
