@@ -1,70 +1,50 @@
 import math
-from collections import defaultdict
+from collections import Counter
 
-def preprocess_text(text):
+def tokenize(text):
+    """Tokenizacja tekstu: konwersja do małych liter i podział na słowa."""
     return text.lower().split()
 
-def calculate_tfidf(corpus):
-    term_frequencies = []
-    document_frequencies = defaultdict(int)
+def calculate_document_scores(documents, query, smoothing=0.5):
+    """Obliczanie prawdopodobieństw zapytania dla dokumentów."""
+    query_tokens = tokenize(query)
+    tokenized_documents = [tokenize(doc) for doc in documents]
 
-    for doc in corpus:
-        tf = defaultdict(int)
-        tokens = preprocess_text(doc)
-        for token in tokens:
-            tf[token] += 1
-        term_frequencies.append(tf)
+    # Statystyki korpusu
+    corpus_tokens = [token for doc in tokenized_documents for token in doc]
+    corpus_frequency = Counter(corpus_tokens)
+    total_corpus_tokens = len(corpus_tokens)
 
-        for token in set(tokens):
-            document_frequencies[token] += 1
+    document_scores = []
 
-    num_docs = len(corpus)
-    tfidf_vectors = []
+    for idx, doc_tokens in enumerate(tokenized_documents):
+        doc_frequency = Counter(doc_tokens)
+        total_doc_tokens = len(doc_tokens)
 
-    for tf in term_frequencies:
-        tfidf = {}
-        for term, freq in tf.items():
-            idf = math.log((num_docs + 1) / (document_frequencies[term] + 1)) + 1
-            tfidf[term] = freq * idf
-        tfidf_vectors.append(tfidf)
+        log_prob = 0
 
-    return tfidf_vectors
+        for token in query_tokens:
+            # Prawdopodobieństwo w dokumencie
+            prob_in_doc = doc_frequency[token] / total_doc_tokens if total_doc_tokens > 0 else 0
+            # Prawdopodobieństwo w korpusie
+            prob_in_corpus = corpus_frequency[token] / total_corpus_tokens if total_corpus_tokens > 0 else 0
+            # Wygładzanie
+            smoothed_prob = smoothing * prob_in_doc + (1 - smoothing) * prob_in_corpus
 
-def cosine_similarity(vec1, vec2):
-    dot_product = sum(vec1.get(term, 0) * vec2.get(term, 0) for term in set(vec1) | set(vec2))
-    norm1 = math.sqrt(sum(value ** 2 for value in vec1.values()))
-    norm2 = math.sqrt(sum(value ** 2 for value in vec2.values()))
+            if smoothed_prob > 0:
+                log_prob += math.log(smoothed_prob)
 
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
+        document_scores.append((idx, log_prob))
 
-    return dot_product / (norm1 * norm2)
+    # Sortowanie według prawdopodobieństwa malejąco, a następnie po indeksie rosnąco
+    document_scores.sort(key=lambda x: (-x[1], x[0]))
 
-def classify_knn(training_docs, labels, test_doc, k):
-    tfidf_training = calculate_tfidf(training_docs)
-    tfidf_test = calculate_tfidf([test_doc])[0]
-
-    similarities = []
-    for i, train_vector in enumerate(tfidf_training):
-        similarity = cosine_similarity(train_vector, tfidf_test)
-        similarities.append((similarity, labels[i]))
-
-    similarities.sort(key=lambda x: (-x[0], x[1]))
-
-    top_k = similarities[:k]
-
-    label_count = defaultdict(int)
-    for _, label in top_k:
-        label_count[label] += 1
-
-    return max(label_count.items(), key=lambda x: (x[1], x[0]))[0]
+    return [idx for idx, _ in document_scores]
 
 if __name__ == "__main__":
-    num_training_docs = int(input())
-    training_documents = [input().strip() for _ in range(num_training_docs)]
-    training_labels = list(map(int, input().strip().split()))
-    test_document = input().strip()
-    k_neighbors = int(input())
+    num_documents = int(input())
+    docs = [input().strip() for _ in range(num_documents)]
+    query = input().strip()
 
-    result = classify_knn(training_documents, training_labels, test_document, k_neighbors)
-    print(result)
+    ranked_indices = calculate_document_scores(docs, query)
+    print(ranked_indices)
