@@ -43,11 +43,12 @@ def rank_documents(documents, query, lam=0.5):
     scores.sort(key=lambda x: (-x[0], x[1]))
     return [index for _, index in scores]
 
-# Dane wejściowe
-n = int(input("Podaj liczbę dokumentów: "))
-documents = [input(f"Dokument {i + 1}: ") for i in range(n)]
-query = input("Podaj zapytanie: ")
+if __name__ == "__main__":
+    # Dane wejściowe
+    n = int(input("Podaj liczbę dokumentów: "))
+    documents = [input(f"Dokument {i + 1}: ") for i in range(n)]
+    query = input("Podaj zapytanie: ")
 
-# Ranking dokumentów
-ranked_indices = rank_documents(documents, query)
-print("Posortowane indeksy dokumentów:", ranked_indices)
+    # Ranking dokumentów
+    ranked_indices = rank_documents(documents, query)
+    print("Posortowane indeksy dokumentów:", " ".join(map(str, ranked_indices)))
