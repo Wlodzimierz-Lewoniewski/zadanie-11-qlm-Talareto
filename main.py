@@ -39,17 +39,16 @@ def rank_documents(documents, query, lam=0.5):
         score = query_likelihood(doc_freqs, coll_freqs, query, total_terms_list[i], lam)
         scores.append((score, i))
 
-    # Sortowanie malejąco według wyniku, zachowując kolejność, która pasuje do testów
-    scores.sort(key=lambda x: (-x[0], x[1]))  # Wysokie wyniki pierwsze, indeksy w kolejności specyficznej dla testów
+    # Sortowanie malejąco według wyniku, zachowując kolejność przy równych wynikach
+    scores.sort(key=lambda x: (-x[0], x[1]))
     return [index for _, index in scores]
-
 
 if __name__ == "__main__":
     # Dane wejściowe
-    n = int(input())
+    n = int(input().strip())
     documents = [input().strip() for _ in range(n)]
     query = input().strip()
 
     # Ranking dokumentów
     ranked_indices = rank_documents(documents, query)
-    print(ranked_indices)  # Wyświetl wynik jako tablicę
+    print(ranked_indices)
