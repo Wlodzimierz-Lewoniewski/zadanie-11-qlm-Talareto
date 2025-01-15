@@ -45,10 +45,10 @@ def rank_documents(documents, query, lam=0.5):
 
 if __name__ == "__main__":
     # Dane wejściowe
-    n = int(input("Podaj liczbę dokumentów: "))
-    documents = [input(f"Dokument {i + 1}: ") for i in range(n)]
-    query = input("Podaj zapytanie: ")
+    n = int(input())
+    documents = [input().strip() for _ in range(n)]
+    query = input().strip()
 
     # Ranking dokumentów
     ranked_indices = rank_documents(documents, query)
-    print("Posortowane indeksy dokumentów:", " ".join(map(str, ranked_indices)))
+    print(" ".join(map(str, ranked_indices)))
