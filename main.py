@@ -67,4 +67,4 @@ if __name__ == "__main__":
     k_neighbors = int(input())
 
     result = classify_knn(training_documents, training_labels, test_document, k_neighbors)
-    print(result)
+    print([result])
