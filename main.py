@@ -60,17 +60,11 @@ def classify_knn(training_docs, labels, test_doc, k):
     return max(label_count.items(), key=lambda x: (x[1], x[0]))[0]
 
 if __name__ == "__main__":
-    try:
-        num_training_docs = int(input())
-        training_documents = [input().strip() for _ in range(num_training_docs)]
-        training_labels = list(map(int, input().strip().split()))
-        test_document = input().strip()
-        k_neighbors = int(input())
+    num_training_docs = int(input())
+    training_documents = [input().strip() for _ in range(num_training_docs)]
+    training_labels = list(map(int, input().strip().split()))
+    test_document = input().strip()
+    k_neighbors = int(input())
 
-        if len(training_labels) != num_training_docs:
-            raise ValueError("The number of labels must match the number of documents.")
-
-        result = classify_knn(training_documents, training_labels, test_document, k_neighbors)
-        print([result])
-    except ValueError as e:
-        print(f"Input error: {e}")
+    result = classify_knn(training_documents, training_labels, test_document, k_neighbors)
+    print(result)
