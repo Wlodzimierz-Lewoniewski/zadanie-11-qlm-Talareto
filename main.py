@@ -1,53 +1,78 @@
 import math
-from collections import Counter
+from collections import defaultdict
 
-def tokenize(text):
-    """Konwertuje tekst na małe litery i dzieli na słowa, usuwając znaki interpunkcyjne."""
-    return text.lower().replace('.', '').split()
+def preprocess_text(text):
+    """Convert text to lowercase and split into tokens."""
+    return text.lower().split()
 
-def compute_document_frequencies(documents):
-    """Oblicza częstotliwości terminów dla każdego dokumentu."""
-    return [Counter(tokenize(doc)) for doc in documents]
+def calculate_tfidf(corpus):
+    """Compute the TF-IDF representation for each document in the corpus."""
+    term_frequencies = []
+    document_frequencies = defaultdict(int)
 
-def compute_corpus_frequencies(documents):
-    """Oblicza częstotliwości terminów w całym korpusie."""
-    corpus_counter = Counter()
-    for doc in documents:
-        corpus_counter.update(tokenize(doc))
-    return corpus_counter
+    for doc in corpus:
+        tf = defaultdict(int)
+        tokens = preprocess_text(doc)
+        for token in tokens:
+            tf[token] += 1
+        term_frequencies.append(tf)
 
-def calculate_query_probability(doc_freqs, corpus_freqs, query_tokens, doc_size, corpus_size, smoothing=0.5):
-    """Oblicza logarytmiczne prawdopodobieństwo zapytania dla danego dokumentu."""
-    log_prob = 0
-    for token in query_tokens:
-        prob_in_doc = doc_freqs[token] / doc_size if doc_size > 0 else 0
-        prob_in_corpus = corpus_freqs[token] / corpus_size if corpus_size > 0 else 0
-        smoothed_prob = smoothing * prob_in_doc + (1 - smoothing) * prob_in_corpus
-        if smoothed_prob > 0:
-            log_prob += math.log(smoothed_prob)
-    return log_prob
+        for token in set(tokens):
+            document_frequencies[token] += 1
 
-def rank_documents(documents, query, smoothing=0.5):
-    """Sortuje dokumenty według prawdopodobieństwa zapytania."""
-    query_tokens = tokenize(query)
-    doc_freqs_list = compute_document_frequencies(documents)
-    corpus_freqs = compute_corpus_frequencies(documents)
-    corpus_size = sum(corpus_freqs.values())
+    num_docs = len(corpus)
+    tfidf_vectors = []
 
-    scores = []
-    for idx, doc_freqs in enumerate(doc_freqs_list):
-        doc_size = sum(doc_freqs.values())
-        score = calculate_query_probability(doc_freqs, corpus_freqs, query_tokens, doc_size, corpus_size, smoothing)
-        scores.append((idx, score))
+    for tf in term_frequencies:
+        tfidf = {}
+        for term, freq in tf.items():
+            idf = math.log((num_docs + 1) / (document_frequencies[term] + 1)) + 1
+            tfidf[term] = freq * idf
+        tfidf_vectors.append(tfidf)
 
-    # Sortowanie malejąco po wyniku, a następnie rosnąco po indeksie
-    scores.sort(key=lambda x: (-x[1], x[0]))
-    return [index for index, _ in scores]
+    return tfidf_vectors
+
+def cosine_similarity(vec1, vec2):
+    """Calculate cosine similarity between two TF-IDF vectors."""
+    dot_product = sum(vec1.get(term, 0) * vec2.get(term, 0) for term in set(vec1) | set(vec2))
+    norm1 = math.sqrt(sum(value ** 2 for value in vec1.values()))
+    norm2 = math.sqrt(sum(value ** 2 for value in vec2.values()))
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)
+
+def classify_knn(training_docs, labels, test_doc, k):
+    """Classify a document using the k-Nearest Neighbors algorithm."""
+    tfidf_training = calculate_tfidf(training_docs)
+    tfidf_test = calculate_tfidf([test_doc])[0]
+
+    similarities = []
+    for i, train_vector in enumerate(tfidf_training):
+        similarity = cosine_similarity(train_vector, tfidf_test)
+        similarities.append((similarity, labels[i]))
+
+    # Sort by similarity (descending), breaking ties by label (ascending)
+    similarities.sort(key=lambda x: (-x[0], x[1]))
+
+    # Get the top k neighbors
+    top_k = similarities[:k]
+
+    # Count the labels in the top k neighbors
+    label_count = defaultdict(int)
+    for _, label in top_k:
+        label_count[label] += 1
+
+    # Determine the most common label, defaulting to 1 in case of a tie
+    return max(label_count.items(), key=lambda x: (x[1], x[0]))[0]
 
 if __name__ == "__main__":
-    num_docs = int(input("Podaj liczbę dokumentów: "))
-    documents = [input(f"Dokument {i + 1}: ").strip() for i in range(num_docs)]
-    query = input("Podaj zapytanie: ").strip()
+    num_training_docs = int(input())
+    training_documents = [input().strip() for _ in range(num_training_docs)]
+    training_labels = list(map(int, input().strip().split()))
+    test_document = input().strip()
+    k_neighbors = int(input())
 
-    ranked_indices = rank_documents(documents, query)
-    print("Posortowane indeksy dokumentów:", ranked_indices)
+    result = classify_knn(training_documents, training_labels, test_document, k_neighbors)
+    print(result)
